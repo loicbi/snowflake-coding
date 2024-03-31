@@ -1,0 +1,24 @@
+{
+    "sqltools.connections": [
+        {
+            "authenticator": "SNOWFLAKE",
+            "ocspOptions": {
+                "ocspFailOpen": true
+            },
+            "snowflakeOptions": {
+                "clientSessionKeepAlive": true,
+                "clientSessionKeepAliveHeartbeatFrequency": 3600,
+                "role": "DEV_ENT_DW_ENGINEER_FR"
+            },
+            "previewLimit": 50,
+            "driver": "Snowflake",
+            "name": "SNOWFLAKE-DEV",
+            "group": "DEV",
+            "account": "mckesson.canada-central.azure",
+            "username": "SSIS_INGEST_AU",
+            "password": "Ev?PAGOnAscT",
+            "warehouse": "DEMO_WH",
+            "database": "DEMO_DB"
+        }
+    ]
+}
