@@ -180,7 +180,6 @@ from
 
 -- Step-7.1 Loading Data From Internal Stage to Source Tables
 
-
 /* Every time the data moves from internal stage location to source layer within permanent tables, it will add a sequence number that will help to de-duplicate the data set.
 */
 -- order table
@@ -190,6 +189,7 @@ create or replace sequence DEMO_DB.ALF_SOURCE.in_sales_order_seq
   start = 1 
   increment = 1 
 comment='This is sequence for India sales order table';
+SELECT DEMO_DB.ALF_SOURCE.in_sales_order_seq.NEXTVAL;
 
 create or replace sequence DEMO_DB.ALF_SOURCE.us_sales_order_seq 
   start = 1 
@@ -206,5 +206,76 @@ DESC SEQUENCE DEMO_DB.ALF_SOURCE.FR_SALES_ORDER_SEQ;
 
 -- 7.2 Source Table DDL Script
 
+-- India Sales Table in Source Schema (CSV File)
+create or replace transient table DEMO_DB.ALF_SOURCE.in_sales_order (
+ sales_order_key number(38,0),
+ order_id varchar(),
+ customer_name varchar(),
+ mobile_key varchar(),
+ order_quantity number(38,0),
+ unit_price number(38,0),
+ order_valaue number(38,0),
+ promotion_code varchar(),
+ final_order_amount number(10,2),
+ tax_amount number(10,2),
+ order_dt date,
+ payment_status varchar(),
+ shipping_status varchar(),
+ payment_method varchar(),
+ payment_provider varchar(),
+ mobile varchar(),
+ shipping_address varchar(),
+ _metadata_file_name varchar(),
+ _metadata_row_numer number(38,0),
+ _metadata_last_modified timestamp_ntz(9)
+);
+
+-- US Sales Table in Source Schema (Parquet File)
+create or replace transient table DEMO_DB.ALF_SOURCE.us_sales_order (
+ sales_order_key number(38,0),
+ order_id varchar(),
+ customer_name varchar(),
+ mobile_key varchar(),
+ order_quantity number(38,0),
+ unit_price number(38,0),
+ order_valaue number(38,0),
+ promotion_code varchar(),
+ final_order_amount number(10,2),
+ tax_amount number(10,2),
+ order_dt date,
+ payment_status varchar(),
+ shipping_status varchar(),
+ payment_method varchar(),
+ payment_provider varchar(),
+ phone varchar(),
+ shipping_address varchar(),
+ _metadata_file_name varchar(),
+ _metadata_row_numer number(38,0),
+ _metadata_last_modified timestamp_ntz(9)
+);
+
+-- France Sales Table in Source Schema (JSON File)
+create or replace transient table DEMO_DB.ALF_SOURCE.fr_sales_order (
+ sales_order_key number(38,0),
+ order_id varchar(),
+ customer_name varchar(),
+ mobile_key varchar(),
+ order_quantity number(38,0),
+ unit_price number(38,0),
+ order_valaue number(38,0),
+ promotion_code varchar(),
+ final_order_amount number(10,2),
+ tax_amount number(10,2),
+ order_dt date,
+ payment_status varchar(),
+ shipping_status varchar(),
+ payment_method varchar(),
+ payment_provider varchar(),
+ phone varchar(),
+ shipping_address varchar(),
+ _metadata_file_name varchar(),
+ _metadata_row_numer number(38,0),
+ _metadata_last_modified timestamp_ntz(9)
+);
 
 
