@@ -63,6 +63,8 @@ create or replace file format DEMO_DB.ALF_COMMON.my_parquet_format
 
   SHOW FILE FORMATS IN SCHEMA DEMO_DB.ALF_COMMON;
 
+  DESC FILE FORMAT  DEMO_DB.ALF_COMMON.my_json_format;
+
 
 -- Step-5.1 Select Statements On Internal Stage (CSV, Parquet, JSON)
 
@@ -138,3 +140,71 @@ select
 from                                                
 @DEMO_DB.ALF_SOURCE.MY_INTERNAL_STAGE/source=FR/format=json/
 (file_format => DEMO_DB.ALF_COMMON.my_json_format);
+
+
+-- Step-6 Foreign Exchange Rate Data
+
+
+/*  Create Foreign exchange rate data to convert the local currency data (like INR or Euro) to US Dollar so when we create total sales, at global level, so we can build PKI in a single currency and compare the performance. 
+*/
+
+list @DEMO_DB.ALF_SOURCE.MY_INTERNAL_STAGE/exchange/;
+
+use schema DEMO_DB.ALF_COMMON;
+create or replace transient table DEMO_DB.ALF_COMMON.exchange_rate(
+    date date, 
+    usd2usd decimal(10,7),
+    usd2eu decimal(10,7),
+    usd2can decimal(10,7),
+    usd2uk decimal(10,7),
+    usd2inr decimal(10,7),
+    usd2jp decimal(10,7)
+);
+
+
+copy into DEMO_DB.ALF_COMMON.exchange_rate
+from 
+(
+select 
+    t.$1::date as exchange_dt,
+    to_decimal(t.$2) as usd2usd,
+    to_decimal(t.$3,12,10) as usd2eu,
+    to_decimal(t.$4,12,10) as usd2can,
+    to_decimal(t.$4,12,10) as usd2uk,
+    to_decimal(t.$4,12,10) as usd2inr,
+    to_decimal(t.$4,12,10) as usd2jp
+from 
+     @DEMO_DB.ALF_SOURCE.MY_INTERNAL_STAGE/exchange/exchange-rate-data.csv
+     (file_format => 'DEMO_DB.ALF_COMMON.MY_CSV_FORMAT') t
+);
+
+-- Step-7.1 Loading Data From Internal Stage to Source Tables
+
+
+/* Every time the data moves from internal stage location to source layer within permanent tables, it will add a sequence number that will help to de-duplicate the data set.
+*/
+-- order table
+use schema DEMO_DB.ALF_SOURCE;
+
+create or replace sequence DEMO_DB.ALF_SOURCE.in_sales_order_seq 
+  start = 1 
+  increment = 1 
+comment='This is sequence for India sales order table';
+
+create or replace sequence DEMO_DB.ALF_SOURCE.us_sales_order_seq 
+  start = 1 
+  increment = 1 
+  comment='This is sequence for USA sales order table';
+
+create or replace sequence DEMO_DB.ALF_SOURCE.fr_sales_order_seq 
+  start = 1 
+  increment = 1 
+  comment='This is sequence for France sales order table';
+
+DESC SEQUENCE DEMO_DB.ALF_SOURCE.FR_SALES_ORDER_SEQ;
+
+
+-- 7.2 Source Table DDL Script
+
+
+
