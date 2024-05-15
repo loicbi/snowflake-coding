@@ -23,7 +23,7 @@ INFO:venue::text as venue
 
 FROM DEMO_DB.ALF_RAW.MATCH_RAW_TBL;
 
--- CREATE TABLE match_detail_clean
+-- CREATE TABLE match_detail_clean TO GET UNIQUE KEY FOR EXTRACTING DATA
 create or replace transient table DEMO_DB.ALF_CLEAN.match_detail_clean as
 select
     info:match_type_number::int as match_type_number, 
