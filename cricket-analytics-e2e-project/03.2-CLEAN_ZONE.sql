@@ -12,7 +12,7 @@ USE WAREHOUSE LOAD_WH;
 -- EXTRACT PLAYERS 
 
 -- VERSION 1 
-SELECT INFO:match_type_number::INT AS match_type_number,
+SELECT INFO:match_type_number::NUMBER AS match_type_number,
 INFO:players,
 INFO:teams
 FROM 
@@ -21,7 +21,7 @@ DEMO_DB.ALF_RAW.MATCH_RAW_TBL
 
 
 -- VERSION 2
-SELECT INFO:match_type_number::INT AS match_type_number,
+SELECT INFO:match_type_number::NUMBER AS match_type_number,
 INFO:players,
 INFO:teams
 FROM 
@@ -31,7 +31,7 @@ WHERE match_type_number = '4670'
 
 
 -- VERSION 3
-SELECT RAW.INFO:match_type_number::INT AS match_type_number, 
+SELECT RAW.INFO:match_type_number::NUMBER AS match_type_number, 
 -- P.* 
 P.KEY AS COUNTRY
 FROM DEMO_DB.ALF_RAW.MATCH_RAW_TBL AS RAW,
@@ -40,7 +40,7 @@ WHERE match_type_number = '4670';
 
 -- VERSION 4 
 
-SELECT RAW.INFO:match_type_number::INT AS match_type_number, 
+SELECT RAW.INFO:match_type_number::NUMBER AS match_type_number, 
 -- P.* 
 P.KEY AS COUNTRY, 
 T.VALUE::VARCHAR AS PLAYER_NAME
@@ -53,7 +53,7 @@ LATERAL FLATTEN (INPUT => P.VALUE) AS T
 -- CREATE TABLE PLAYER_CLEAN_TBL 
 CREATE OR REPLACE TRANSIENT TABLE DEMO_DB.ALF_CLEAN.PLAYER_CLEAN_TBL
 AS
-SELECT RAW.INFO:match_type_number::INT AS match_type_number, 
+SELECT RAW.INFO:match_type_number::NUMBER AS match_type_number, 
 P.KEY AS COUNTRY, 
 T.VALUE::VARCHAR AS PLAYER_NAME,
 RAW.STG_FILE_NAME ,
@@ -89,7 +89,7 @@ REFERENCES DEMO_DB.ALF_CLEAN.MATCH_DETAIL_CLEAN (MATCH_TYPE_NUMBER);
 
 
 -- VERSION 1 - LETS EXTRACT THE ELEMENTS FROM innings array
-SELECT M.INFO:match_type_number::INT AS match_type_number,
+SELECT M.INFO:match_type_number::NUMBER AS match_type_number,
 F1.*
 FROM DEMO_DB.ALF_RAW.MATCH_RAW_TBL M, 
 LATERAL FLATTEN (INPUT => M.INNINGS) AS F1
@@ -98,9 +98,67 @@ where match_type_number = 4670
 
 
 -- VERSION 1 - LETS EXTRACT THE ELEMENTS FROM innings array
-SELECT M.INFO:match_type_number::INT AS match_type_number,
+SELECT M.INFO:match_type_number::NUMBER AS match_type_number,
 F1.*
 FROM DEMO_DB.ALF_RAW.MATCH_RAW_TBL M, 
 LATERAL FLATTEN (INPUT => M.INNINGS) AS F1
 where match_type_number = 4670
 ;
+
+
+-- VERSION 2 - LETS EXTRACT THE ELEMENTS FROM innings array
+SELECT M.INFO:match_type_number::NUMBER AS match_type_number,
+I.VALUE:team::string as TEAM,
+O.VALUE:over::NUMBER AS OVER,
+D.VALUE:bowler::VARCHAR AS bowler,
+D.VALUE:non_striker::VARCHAR AS non_striker,
+D.VALUE:runs.batter::NUMBER AS BATTER,
+D.VALUE:runs.extras::NUMBER AS extras,
+D.VALUE:runs.total::NUMBER AS total,
+E.VALUE::NUMBER AS EXTRA_RUNS,
+
+
+-- MEDIA 
+M.STG_FILE_NAME ,
+M.STG_FILE_ROW_NUMBER ,
+M.STG_FILE_HASHKEY ,
+M.STG_FILE_MODIFIED_TS
+FROM DEMO_DB.ALF_RAW.MATCH_RAW_TBL M, 
+LATERAL FLATTEN (INPUT => M.INNINGS) AS I,
+LATERAL FLATTEN (INPUT => I.VALUE:overs) AS O,
+LATERAL FLATTEN (INPUT => O.VALUE:deliveries) AS D,
+LATERAL FLATTEN (INPUT => D.VALUE:extras, OUTER => TRUE) AS E -- outer=True to get null 
+where match_type_number = 4670
+;
+
+
+-- VERSION 3  - LETS EXTRACT wickets ARRAY
+SELECT M.INFO:match_type_number::NUMBER AS match_type_number,
+I.VALUE:team::string as TEAM,
+O.VALUE:over::NUMBER AS OVER,
+D.VALUE:bowler::VARCHAR AS bowler,
+D.VALUE:non_striker::VARCHAR AS non_striker,
+D.VALUE:runs.batter::NUMBER AS BATTER,
+D.VALUE:runs.extras::NUMBER AS extras,
+D.VALUE:runs.total::NUMBER AS total,
+E.VALUE::NUMBER AS EXTRA_RUNS,
+W.VALUE:fielders::VARIANT as fielders,
+W.VALUE:kind::text as kind,
+W.VALUE:player_out::text as player_out,
+
+-- MEDIA 
+M.STG_FILE_NAME ,
+M.STG_FILE_ROW_NUMBER ,
+M.STG_FILE_HASHKEY ,
+M.STG_FILE_MODIFIED_TS
+FROM DEMO_DB.ALF_RAW.MATCH_RAW_TBL M, 
+LATERAL FLATTEN (INPUT => M.INNINGS) AS I,
+LATERAL FLATTEN (INPUT => I.VALUE:overs) AS O,
+LATERAL FLATTEN (INPUT => O.VALUE:deliveries) AS D,
+LATERAL FLATTEN (INPUT => D.VALUE:extras, OUTER => TRUE) AS E, -- outer=True to get null ,
+LATERAL FLATTEN (INPUT => D.VALUE:wickets, OUTER=> TRUE) AS W
+where match_type_number = 4670
+;
+
+
+-- VERSION 6 CREATE TABLE DELIVERY_CLEAN_TBL 
