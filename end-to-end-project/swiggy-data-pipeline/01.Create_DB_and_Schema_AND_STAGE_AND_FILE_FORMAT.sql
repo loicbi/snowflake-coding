@@ -34,7 +34,6 @@ CREATE STAGE
     directory = (enable = true)
     comment = 'This is snowflake internal stage';
 
-LIST @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta;
 
 
 /* TAG */
