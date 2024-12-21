@@ -7,11 +7,11 @@
 LIST @DEMO_DB.ALF_STAGE_SCH.CSV_STG/initial;
 LIST @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta;
 
-SELECT 
-    t.$1::text as location_id, 
-    t.$2::text as city, 
+SELECT
+    t.$1::text as location_id,
+    t.$2::text as city,
     t.$3::text as State,
-    t.$4::text as ZipCode, 
+    t.$4::text as ZipCode,
     t.$5::text as ActiveFlag,
     t.$6::text as CreatedDate,
     t.$7::text as ModifiedDate,
@@ -82,15 +82,13 @@ COPY INTO DEMO_DB.ALF_STAGE_SCH.LOCATION (
  from 
    @DEMO_DB.ALF_STAGE_SCH.CSV_STG/initial/location t
 )
-FILE_FORMAT = (  FORMAT_NAME = 'DEMO_DB.ALF_STAGE_SCH.CSV_FILE_FORMAT')
+FILE_FORMAT = (FORMAT_NAME = 'DEMO_DB.ALF_STAGE_SCH.CSV_FILE_FORMAT')
 ON_ERROR = ABORT_STATEMENT;
+
+
 SELECT * FROM DEMO_DB.ALF_STAGE_SCH.LOCATION;
 
-
 SELECT * FROM DEMO_DB.ALF_STAGE_SCH.LOCATION_STM; -- stg 
-
-
-
 
 
 
