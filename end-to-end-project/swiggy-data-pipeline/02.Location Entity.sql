@@ -283,8 +283,7 @@ CREATE TABLE IF NOT EXISTS DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_LOCATION_DIM (
 comment = 'Dimension table for restaurant location with scd2 (slowly changing dimension) enabled and hashkey as surrogate key';
 
 
-MERGE INTO 
-        DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_LOCATION_DIM AS target
+MERGE INTO DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_LOCATION_DIM AS target
     USING 
         DEMO_DB.ALF_CLEAN_SCH.RESTAURANT_LOCATION_STM AS source
     ON 
@@ -379,6 +378,14 @@ SELECT * FROM DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_LOCATION_DIM;
 
 
 -- PART 2: DELTA - LOCATION 
+
+
+LIST @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/;
+/* we load DATA FROM STAGE   DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day01-2rows-add.csv */
+/* we load DATA FROM STAGE   DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day02-2rows-update.csv */
+
+
+/* RUN : LEVEL 1 :::: copy into DEMO_DB.ALF_STAGE_SCH.LOCATION */
 copy into DEMO_DB.ALF_STAGE_SCH.LOCATION(locationid, city, state, zipcode, activeflag, 
                     createddate, modifieddate, _stg_file_name, 
                     _stg_file_load_ts, _stg_file_md5, _copy_data_ts)
@@ -395,7 +402,18 @@ from (
         metadata$file_last_modified as _stg_file_load_ts,
         metadata$file_content_key as _stg_file_md5,
         current_timestamp as _copy_data_ts
-    from @DEMO_DB.ALF_STAGE_SCH.csv_stg/delta/location/delta-day02-2rows-update.csv t
+    from @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day02-2rows-update.csv t
 )
-file_format = (format_name = 'stage_sch.csv_file_format')
+file_format = (format_name = 'DEMO_DB.ALF_STAGE_SCH.CSV_FILE_FORMAT')
 on_error = abort_statement;
+
+-- STREAM - STG
+SELECT * FROM DEMO_DB.ALF_STAGE_SCH.LOCATION_STM; -- stg
+SELECT * FROM DEMO_DB.ALF_STAGE_SCH.LOCATION; -- stg
+
+/* RUN : LEVEL 2 ::::   MERGE INTO DEMO_DB.ALF_CLEAN_SCH.RESTAURANT_LOCATION */ 
+
+/* RUN : LEVEL 3 :::: MERGE INTO DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_LOCATION_DIM */
+
+
+
