@@ -1,7 +1,6 @@
 
 /* PART 1: LOCATION - INITIAL LOAD */
 
-
 /* LEVEL 1::: STAGING */ 
 
 LIST @DEMO_DB.ALF_STAGE_SCH.CSV_STG/initial;
@@ -41,7 +40,7 @@ CREATE TABLE IF NOT EXISTS DEMO_DB.ALF_STAGE_SCH.LOCATION
     _stg_file_name TEXT,
     _stg_file_load_ts TIMESTAMP,
     _stg_file_md5 TEXT,
-    _copy_data_ts TIMESTAMP)
+    _copy_data_ts TIMESTAMP  default CURRENT_TIMESTAMP)
     comment = 'This is the location stage/raw table where data will be copied from internal stage using copy command. This is as-is data represetation from the source location. All the columns are text data type except the audit columns that are added for traceability.'
 ;
 
@@ -64,7 +63,7 @@ COPY INTO DEMO_DB.ALF_STAGE_SCH.LOCATION (
     _stg_file_name,
     _stg_file_load_ts,
     _stg_file_md5,
-    _copy_data_ts
+    _copy_data_ts 
 ) FROM (
     SELECT 
     t.$1::text as location_id, 
@@ -87,8 +86,7 @@ ON_ERROR = ABORT_STATEMENT;
 
 
 SELECT * FROM DEMO_DB.ALF_STAGE_SCH.LOCATION;
-
-SELECT * FROM DEMO_DB.ALF_STAGE_SCH.LOCATION_STM; -- stg 
+SELECT * FROM DEMO_DB.ALF_STAGE_SCH.LOCATION_STM; -- stg
 
 
 
@@ -117,7 +115,7 @@ CREATE TABLE IF NOT EXISTS DEMO_DB.ALF_CLEAN_SCH.RESTAURANT_LOCATION (
     _stg_file_name string,
     _stg_file_load_ts timestamp_ntz,
     _stg_file_md5 string,
-    _copy_data_ts timestamp_ntz default current_timestamp
+    _copy_data_ts timestamp_ntz  DEFAULT CURRENT_TIMESTAMP
 )
 comment = 'Location entity under clean schema with appropriate data type under clean schema layer, data is populated using merge statement from the stage layer location table. This table does not support SCD2';
 
@@ -258,6 +256,12 @@ WHEN NOT MATCHED THEN
 SELECT * FROM DEMO_DB.ALF_CLEAN_SCH.RESTAURANT_LOCATION;
 SELECT * FROM DEMO_DB.ALF_CLEAN_SCH.RESTAURANT_LOCATION_STM;
 
+
+
+
+
+
+
 /* LEVEL 3: COSUMPTION  */
 
 DROP TABLE IF EXISTS DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_LOCATION_DIM;
@@ -362,37 +366,6 @@ MERGE INTO
 
 SELECT * FROM DEMO_DB.ALF_CLEAN_SCH.RESTAURANT_LOCATION_STM; 
 SELECT * FROM DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_LOCATION_DIM; 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
