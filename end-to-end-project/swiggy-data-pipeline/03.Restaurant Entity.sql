@@ -4,14 +4,25 @@ use database DEMO_DB;
 use schema ALF_STAGE_SCH;
 use warehouse DEMO_WH;
 
+ALTER SESSION SET TIMEZONE  = 'America/Montreal';
+
+/*
+
+RESTAURANT ENTITY :
+    - STAGE LAYER ->  DEMO_DB.ALF_STAGE_SCH.restaurant 
+    - CLEAN LAYER ->  DEMO_DB.ALF_CLEAN_SCH.restaurant
+    - CONSUMPTION LAYER  ->  DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_DIM
+ */
+
 -- create restaurant table under stage location, with all text value + audit column for copy command
+
 DROP TABLE IF EXISTS DEMO_DB.ALF_STAGE_SCH.restaurant; 
 CREATE TABLE IF NOT EXISTS DEMO_DB.ALF_STAGE_SCH.restaurant (
     restaurantid text,      
     name text ,                                         -- restaurant name, required field
     cuisinetype text,                                    -- type of cuisine offered
     pricing_for_2 text,                                  -- pricing for two people as text
-    restaurant_phone text WITH TAG (common.pii_policy_tag = 'SENSITIVE'),                               -- phone number as text
+    restaurant_phone text WITH TAG (DEMO_DB.ALF_COMMON.PII_POLICY_TAG = 'SENSITIVE'),                               -- phone number as text
     operatinghours text,                                 -- restaurant operating hours
     locationid text ,                                    -- location id, default as text
     activeflag text ,                                    -- active status
@@ -31,6 +42,32 @@ CREATE TABLE IF NOT EXISTS DEMO_DB.ALF_STAGE_SCH.restaurant (
 )
 comment = 'This is the restaurant stage/raw table where data will be copied from internal stage using copy command. This is as-is data represetation from the source location. All the columns are text data type except the audit columns that are added for traceability.'
 ;
+
+/* query to extract raw/stg  */
+
+select 
+    t.$1::text as restaurantid,        -- restaurantid as the first column
+    t.$2::text as name,
+    t.$3::text as cuisinetype,
+    t.$4::text as pricing_for_2,
+    t.$5::text as restaurant_phone,
+    t.$6::text as operatinghours,
+    t.$7::text as locationid,
+    t.$8::text as activeflag,
+    t.$9::text as openstatus,
+    t.$10::text as locality,
+    t.$11::text as restaurant_address,
+    t.$12::text as latitude,
+    t.$13::text as longitude,
+    t.$14::text as createddate,
+    t.$15::text as modifieddate,
+    -- audit columns for tracking & debugging
+    metadata$filename as _stg_file_name,
+    metadata$file_last_modified as _stg_file_load_ts,
+    metadata$file_content_key as _stg_file_md5,
+    current_timestamp() as _copy_data_ts
+    from @DEMO_DB.ALF_STAGE_SCH.csv_stg/initial/restaurant/restaurant-delhi+NCR.csv
+ (file_format => 'DEMO_DB.ALF_STAGE_SCH.CSV_FILE_FORMAT') t;
 
 -- Stream object to capture the changes. 
 create or replace stream DEMO_DB.ALF_STAGE_SCH.restaurant_stm 
@@ -72,15 +109,19 @@ from (
 file_format = (format_name = 'DEMO_DB.ALF_STAGE_SCH.CSV_FILE_FORMAT')
 on_error = abort_statement;
 
+SELECT * FROM DEMO_DB.ALF_STAGE_SCH.restaurant;
+SELECT * FROM DEMO_DB.ALF_STAGE_SCH.restaurant_stm;
+
 
 -- the restaurant table where data types are defined. 
-create or replace table clean_sch.restaurant (
+DROP TABLE IF EXISTS DEMO_DB.ALF_CLEAN_SCH.restaurant; 
+CREATE TABLE IF NOT EXISTS DEMO_DB.ALF_CLEAN_SCH.restaurant (
     restaurant_sk number autoincrement primary key,              -- primary key with auto-increment
     restaurant_id number unique,                                        -- restaurant id without auto-increment
     name string(100) not null,                                   -- restaurant name, required field
     cuisine_type string,                                         -- type of cuisine offered
     pricing_for_two number(10, 2),                               -- pricing for two people, up to 10 digits with 2 decimal places
-    restaurant_phone string(15) WITH TAG (common.pii_policy_tag = 'SENSITIVE'),                                 -- phone number, supports 10-digit or international format
+    restaurant_phone string(15) WITH TAG (DEMO_DB.ALF_COMMON.PII_POLICY_TAG = 'SENSITIVE'),                                 -- phone number, supports 10-digit or international format
     operating_hours string(100),                                  -- restaurant operating hours
     location_id_fk number,                                       -- reference id for location, defaulted to 1
     active_flag string(10),                                      -- indicates if the restaurant is active
@@ -100,55 +141,55 @@ create or replace table clean_sch.restaurant (
 )
 comment = 'Restaurant entity under clean schema with appropriate data type under clean schema layer, data is populated using merge statement from the stage layer location table. This table does not support SCD2';
 
-create or replace stream clean_sch.restaurant_stm 
-on table clean_sch.restaurant
+create or replace stream DEMO_DB.ALF_CLEAN_SCH.restaurant_stm 
+on table DEMO_DB.ALF_CLEAN_SCH.restaurant
 comment = 'This is a standard stream object on the clean restaurant table to track insert, update, and delete changes';
 
--- following is the insert statement..
-insert into clean_sch.restaurant (
-    restaurant_id,
-    name,
-    cuisine_type,
-    pricing_for_two,
-    restaurant_phone,
-    operating_hours,
-    location_id_fk,
-    active_flag,
-    open_status,
-    locality,
-    restaurant_address,
-    latitude,
-    longitude,
-    created_dt,
-    modified_dt,
-    _stg_file_name,
-    _stg_file_load_ts,
-    _stg_file_md5
-)
-select 
-    try_cast(restaurantid as number) as restaurant_id,
-    try_cast(name as string) as name,
-    try_cast(cuisinetype as string) as cuisine_type,
-    try_cast(pricing_for_2 as number(10, 2)) as pricing_for_two,
-    try_cast(restaurant_phone as string) as restaurant_phone,
-    try_cast(operatinghours as string) as operating_hours,
-    try_cast(locationid as number) as location_id_fk,
-    try_cast(activeflag as string) as active_flag,
-    try_cast(openstatus as string) as open_status,
-    try_cast(locality as string) as locality,
-    try_cast(restaurant_address as string) as restaurant_address,
-    try_cast(latitude as number(9, 6)) as latitude,
-    try_cast(longitude as number(9, 6)) as longitude,
-    try_to_timestamp_ntz(createddate, 'YYYY-MM-DD HH24:MI:SS.FF9') as created_dt,
-    try_to_timestamp_ntz(modifieddate, 'YYYY-MM-DD HH24:MI:SS.FF9') as modified_dt,
-    _stg_file_name,
-    _stg_file_load_ts,
-    _stg_file_md5
-from 
-    DEMO_DB.ALF_STAGE_SCH.restaurant;
+-- -- following is the insert statement..
+-- insert into DEMO_DB.ALF_CLEAN_SCH.restaurant (
+--     restaurant_id,
+--     name,
+--     cuisine_type,
+--     pricing_for_two,
+--     restaurant_phone,
+--     operating_hours,
+--     location_id_fk,
+--     active_flag,
+--     open_status,
+--     locality,
+--     restaurant_address,
+--     latitude,
+--     longitude,
+--     created_dt,
+--     modified_dt,
+--     _stg_file_name,
+--     _stg_file_load_ts,
+--     _stg_file_md5
+-- )
+-- select 
+--     try_cast(restaurantid as number) as restaurant_id,
+--     try_cast(name as string) as name,
+--     try_cast(cuisinetype as string) as cuisine_type,
+--     try_cast(pricing_for_2 as number(10, 2)) as pricing_for_two,
+--     try_cast(restaurant_phone as string) as restaurant_phone,
+--     try_cast(operatinghours as string) as operating_hours,
+--     try_cast(locationid as number) as location_id_fk,
+--     try_cast(activeflag as string) as active_flag,
+--     try_cast(openstatus as string) as open_status,
+--     try_cast(locality as string) as locality,
+--     try_cast(restaurant_address as string) as restaurant_address,
+--     try_cast(latitude as number(9, 6)) as latitude,
+--     try_cast(longitude as number(9, 6)) as longitude,
+--     try_to_timestamp_ntz(createddate, 'YYYY-MM-DD HH24:MI:SS.FF9') as created_dt,
+--     try_to_timestamp_ntz(modifieddate, 'YYYY-MM-DD HH24:MI:SS.FF9') as modified_dt,
+--     _stg_file_name,
+--     _stg_file_load_ts,
+--     _stg_file_md5
+-- from 
+--     DEMO_DB.ALF_STAGE_SCH.restaurant;
         
 -- here is the merge statement
-MERGE INTO clean_sch.restaurant AS target
+MERGE INTO DEMO_DB.ALF_CLEAN_SCH.restaurant AS target
 USING (
     SELECT 
         try_cast(restaurantid AS number) AS restaurant_id,
@@ -234,14 +275,18 @@ WHEN NOT MATCHED THEN
         source._stg_file_md5
     );
 
+SELECT * FROM DEMO_DB.ALF_CLEAN_SCH.restaurant; 
+SELECT * FROM DEMO_DB.ALF_CLEAN_SCH.restaurant_stm; 
+
 -- now define dim table for restaurant.
-CREATE OR REPLACE TABLE CONSUMPTION_SCH.RESTAURANT_DIM (
+DROP TABLE IF EXISTS DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_DIM; 
+CREATE TABLE IF NOT EXISTS DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_DIM (
     RESTAURANT_HK NUMBER primary key,                   -- Hash key for the restaurant location
     RESTAURANT_ID NUMBER,                   -- Restaurant ID without auto-increment
     NAME STRING(100),                       -- Restaurant name
     CUISINE_TYPE STRING,                    -- Type of cuisine offered
     PRICING_FOR_TWO NUMBER(10, 2),          -- Pricing for two people
-    RESTAURANT_PHONE STRING(15) WITH TAG (common.pii_policy_tag = 'SENSITIVE'),            -- Restaurant phone number
+    RESTAURANT_PHONE STRING(15) WITH TAG (DEMO_DB.ALF_COMMON.PII_POLICY_TAG = 'SENSITIVE'),            -- Restaurant phone number
     OPERATING_HOURS STRING(100),            -- Restaurant operating hours
     LOCATION_ID_FK NUMBER,                  -- Foreign key reference to location
     ACTIVE_FLAG STRING(10),                 -- Indicates if the restaurant is active
@@ -257,13 +302,13 @@ CREATE OR REPLACE TABLE CONSUMPTION_SCH.RESTAURANT_DIM (
 COMMENT = 'Dimensional table for Restaurant entity with hash keys and SCD enabled.';
 
 -- how many changes are available.
-select count(*) from CLEAN_SCH.RESTAURANT_STM;
+select count(*) from DEMO_DB.ALF_CLEAN_SCH.RESTAURANT_STM;
 
 -- merge statement
 MERGE INTO 
-    CONSUMPTION_SCH.RESTAURANT_DIM AS target
+    DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_DIM AS target
 USING 
-    CLEAN_SCH.RESTAURANT_STM AS source
+    DEMO_DB.ALF_CLEAN_SCH.RESTAURANT_STM AS source
 ON 
     target.RESTAURANT_ID = source.RESTAURANT_ID AND 
     target.NAME = source.NAME AND 
@@ -373,10 +418,23 @@ WHEN NOT MATCHED
         TRUE
     );
 
+SELECT * FROM DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_DIM;
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- load the delta data
 
-list @DEMO_DB.ALF_STAGE_SCH.csv_stg/daily/restaurant/;
+list @DEMO_DB.ALF_STAGE_SCH.csv_stg/delta/restaurant/;
 
 copy into DEMO_DB.ALF_STAGE_SCH.restaurant (restaurantid, name, cuisinetype, pricing_for_2, restaurant_phone, 
                       operatinghours, locationid, activeflag, openstatus, 
@@ -404,7 +462,7 @@ from (
         metadata$file_last_modified as _stg_file_load_ts,
         metadata$file_content_key as _stg_file_md5,
         current_timestamp() as _copy_data_ts
-     from @DEMO_DB.ALF_STAGE_SCH.csv_stg/daily/restaurant/day-02-upsert-restaurant-delhi+NCR.csv t
+     from @DEMO_DB.ALF_STAGE_SCH.csv_stg/delta/restaurant/day-01-insert-restaurant-delhi+NCR.csv t
 )
 file_format = (format_name = 'DEMO_DB.ALF_STAGE_SCH.CSV_FILE_FORMAT')
 on_error = abort_statement;

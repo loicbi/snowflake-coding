@@ -40,7 +40,7 @@ CREATE STAGE
 CREATE OR REPLACE 
     TAG DEMO_DB.ALF_COMMON.PII_POLICY_TAG
     ALLOWED_VALUES 'PII', 'PRICE', 'SENSITIVE', 'EMAIL'
-    COMMENT = 'This is PII policy tag object';
+    COMMENT = 'This is PII (Personally Identifiable Information) policy tag object';
 
 
 /* MASKING POLICY  https://data-engineering-simplified.medium.com/column-level-security-in-snowflake-5b2f8b199654  */
