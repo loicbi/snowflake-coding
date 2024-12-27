@@ -4,7 +4,7 @@
 /* LEVEL 1::: STAGING */ 
 
 LIST @DEMO_DB.ALF_STAGE_SCH.CSV_STG/initial;
-LIST @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta;
+LIST @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location;
 
 SELECT
     t.$1::text as location_id,
@@ -20,7 +20,7 @@ SELECT
     metadata$file_content_key as _stg_file_md5,
     current_timestamp as _copy_data_ts
  from 
-   @DEMO_DB.ALF_STAGE_SCH.CSV_STG/initial/location/location-5rows.csv
+   @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day04-invalid-files.csv
    (file_format => 'DEMO_DB.ALF_STAGE_SCH.CSV_FILE_FORMAT') t; 
 
 
@@ -383,6 +383,18 @@ SELECT * FROM DEMO_DB.ALF_CONSUMPTION_SCH.RESTAURANT_LOCATION_DIM;
 LIST @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/;
 /* we load DATA FROM STAGE   DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day01-2rows-add.csv */
 /* we load DATA FROM STAGE   DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day02-2rows-update.csv */
+/* we load DATA FROM STAGE   DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day03-invalid-delimiter.csv */ -- invalid file csv because of delimiter
+-- after LEVEL 1 :::: copy into  --> create tem table 
+CREATE OR REPLACE TEMP TABLE DEMO_DB.ALF_COMMON.LOCATION_TEMP AS 
+SELECT * FROM DEMO_DB.ALF_STAGE_SCH.LOCATION_STM;
+
+select * from DEMO_DB.ALF_COMMON.LOCATION_TEMP;
+-- DELETE BAD RECORD CONTAIN '|'
+DELETE FROM DEMO_DB.ALF_STAGE_SCH.LOCATION WHERE CONTAINS(LOCATIONID, '|');
+/* we load DATA FROM STAGE   DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day04-invalid-files.csv */
+DELETE FROM DEMO_DB.ALF_STAGE_SCH.LOCATION WHERE CONTAINS(LOCATIONID, 'junk');
+
+
 
 
 /* RUN : LEVEL 1 :::: copy into DEMO_DB.ALF_STAGE_SCH.LOCATION */
@@ -402,10 +414,11 @@ from (
         metadata$file_last_modified as _stg_file_load_ts,
         metadata$file_content_key as _stg_file_md5,
         current_timestamp as _copy_data_ts
-    from @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day02-2rows-update.csv t
+    from @DEMO_DB.ALF_STAGE_SCH.CSV_STG/delta/location/delta-day04-invalid-files.csv t
 )
 file_format = (format_name = 'DEMO_DB.ALF_STAGE_SCH.CSV_FILE_FORMAT')
-on_error = abort_statement;
+on_error = abort_statement ; 
+;
 
 -- STREAM - STG
 SELECT * FROM DEMO_DB.ALF_STAGE_SCH.LOCATION_STM; -- stg
