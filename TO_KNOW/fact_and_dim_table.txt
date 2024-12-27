@@ -1,0 +1,15 @@
+Dans le contexte des entrepôts de données et des modèles en étoile (star schema), les tables de faits et de dimensions jouent un rôle crucial pour l'analyse des données. Voici un aperçu de chacune :
+
+Table de Fait
+Contenu : La table de fait contient principalement des mesures quantitatives, c'est-à-dire les données chiffrées que l'on souhaite analyser. Ces mesures sont souvent des éléments comme le montant des ventes, le nombre d'unités vendues, le bénéfice, etc.
+Caractéristiques :
+Granularité : La granularité de la table de fait indique le niveau de détail des données. Par exemple, une table de fait avec une granularité journalière contiendrait des mesures pour chaque jour.
+Clés étrangères : Les tables de fait sont reliées aux tables de dimension par des clés étrangères, permettant ainsi de contextualiser les mesures.
+Exemple : Dans un système de vente, une table de fait pourrait inclure les colonnes suivantes : ID de la transaction, ID du produit, ID du client, date de la vente, quantité vendue, prix total.
+Table de Dimension
+Contenu : Les tables de dimension contiennent des données qualitatives et descriptives qui apportent un contexte aux données chiffrées de la table de fait. Elles incluent des attributs qui permettent de catégoriser ou de filtrer les données.
+Caractéristiques :
+Hiérarchies : Les dimensions peuvent inclure des hiérarchies (par exemple, une dimension temps avec les niveaux année, trimestre, mois, jour).
+Attributs : Elles contiennent des attributs qui décrivent les entités. Par exemple, une dimension produit pourrait inclure des attributs comme le nom du produit, la catégorie, la marque, etc.
+Exemple : Dans un système de vente, une table de dimension produit pourrait inclure : ID du produit, nom du produit, catégorie, marque, prix standard.
+Ensemble, les tables de faits et de dimensions permettent de créer une structure de données qui facilite les analyses et les rapports, rendant les données plus accessibles et utiles pour la prise de décision stratégique.
