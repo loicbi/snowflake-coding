@@ -1,5 +1,9 @@
 -- CREATE DEMO_DB 
 
+/* youtu: https://youtu.be/IktHL33Wgug  */
+
+/* medium: https://data-engineering-simplified.medium.com/swiggy-end-to-end-data-engineering-project-3f1af55005bf */
+
 /* SCHEMA */
 
 
