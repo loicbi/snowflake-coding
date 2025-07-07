@@ -18,6 +18,7 @@ session.sql("USE WAREHOUSE DEMO_WH").collect()
 
 
 df_customer_info = session.table("DEMO_DB.ALF_DB_WH.QUALTRICS_SURVEY")
+
 df_customer_filter = df_customer_info.filter(col("DEPARTMENT") == 'RBG')
 df_customer_select = df_customer_info.select(col("SURVEY_ID"), col("EXECUTION_FLAG"), col('DEPARTMENT'))
 df_customer_select.show()
